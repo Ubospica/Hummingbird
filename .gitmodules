@@ -1,3 +1,9 @@
 [submodule "serial"]
 	path = serial
 	url = https://github.com/wjwwood/serial
+[submodule "doc/YPU"]
+	path = doc/YPU
+	url = https://github.com/ZYHowell/YPU.git
+[submodule "doc/RISCV-CPU"]
+	path = doc/RISCV-CPU
+	url = https://github.com/ACMClassCourses/RISCV-CPU.git

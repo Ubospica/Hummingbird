@@ -1,6 +1,6 @@
 [submodule "serial"]
 	path = serial
-	url = https://github.com/wjwwood/serial
+	url = https://github.com/wjwwood/serial.git
 [submodule "doc/YPU"]
 	path = doc/YPU
 	url = https://github.com/ZYHowell/YPU.git

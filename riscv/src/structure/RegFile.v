@@ -17,7 +17,9 @@ module RegFile(
 	input wire rdy_commit_rob_in,
 	input wire [`REG_WIDTH - 1 : 0] dest_rob_in,
 	input wire [`DATA_WIDTH - 1 : 0] value_rob_in,
-	input wire [`ROB_WIDTH - 1 : 0] rob_id_rob_in
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_rob_in,
+
+	input wire refresh_rob_cdb_in
 );
 
 	reg [`DATA_WIDTH - 1 : 0] value [`REG_SIZE - 1 : 0];
@@ -32,6 +34,11 @@ module RegFile(
 				busy[i] = `FALSE;
 				value[i] = 0;
 			end 
+		end
+		else if (rdy_in && refresh_rob_cdb_in) begin
+			for (i = 0; i < `REG_SIZE; i = i + 1) begin
+				busy[i] = `FALSE;
+			end
 		end
 		else if (rdy_in) begin
 			if (rdy_commit_rob_in) begin

@@ -7,6 +7,8 @@ module RS(
 	
 	//Dispatcher
 	input wire rdy_dp_in,
+	// input wire [`OP_TYPE_WIDTH - 1 : 0] op_type_dp_in,
+	input wire [`ADDR_WIDTH - 1 : 0] pc_dp_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_dp_in,
 	input wire [`ROB_WIDTH - 1 : 0] qj_dp_in, qk_dp_in,
 	input wire [31 : 0] vj_dp_in, vk_dp_in,
@@ -18,17 +20,25 @@ module RS(
 	input wire idle_alu_in,
 	output reg rdy_alu_out,
 	output reg [`OP_WIDTH - 1 : 0] opcode_alu_out,
+	output reg [`ADDR_WIDTH - 1 : 0] pc_alu_out,
 	output reg [`DATA_WIDTH - 1 : 0] vj_alu_out, vk_alu_out, imm_alu_out,
 	output reg [`ROB_WIDTH - 1 : 0] rob_id_alu_out,
 
-	input wire rdy_alu_in, 
-	input wire [`DATA_WIDTH - 1 : 0] result_alu_in,
-	input wire [`ROB_WIDTH - 1 : 0] rob_id_alu_in
-
+	input wire rdy_a_cdb_in,
+	input wire [`DATA_WIDTH - 1 : 0] result_a_cdb_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_a_cdb_in,
+	
+	input wire rdy_ls_cdb_in,
+	input wire [`DATA_WIDTH - 1 : 0] result_ls_cdb_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_ls_cdb_in,
+	
+	input wire refresh_rob_cdb_in
 );
 
 	reg busy [`RS_SIZE - 1 : 0];
+	// reg [`OP_TYPE_WIDTH - 1 : 0] op_type [`RS_SIZE - 1 : 0];
 	reg [`OP_WIDTH - 1 : 0] op [`RS_SIZE - 1 : 0];
+	reg [`OP_WIDTH - 1 : 0] pc [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] qj [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] qk [`RS_SIZE - 1 : 0];
 	reg [`INST_WIDTH - 1 : 0] vj [`RS_SIZE - 1 : 0];
@@ -55,10 +65,20 @@ module RS(
 			rs_cnt <= 0;
 			rdy_alu_out <= `FALSE;
 		end
+		else if (rdy_in && refresh_rob_cdb_in) begin
+			for (i = 0; i < `RS_SIZE; i = i + 1) begin
+				busy[i] <= `FALSE;
+			end
+			sent_to_alu <= `FALSE;
+			rs_cnt <= 0;
+			rdy_alu_out <= `FALSE;
+		end
 		else if (rdy_in) begin
 			if (rdy_dp_in) begin
 				busy[free_rs_id] <= `TRUE;
+				// op_type[free_es_id] <= op_type_dp_in;
 				op[free_rs_id] <= opcode_dp_in;
+				pc[free_rs_id] <= pc_dp_in;
 				qj[free_rs_id] <= qj_dp_in;
 				qk[free_rs_id] <= qk_dp_in;
 				vj[free_rs_id] <= vj_dp_in;
@@ -77,13 +97,14 @@ module RS(
 			rdy_alu_out <= `FALSE;
 			if (idle_alu_in) begin
 				for (i = 0; i < `RS_SIZE; i = i + 1) begin
-					if (!(sent_to_alu == `TRUE && i == alu_rs_id) && 
-						busy[i] && qj[i] == 0 && qk[i] == 0) begin
+					if (!(sent_to_alu == `TRUE && i == alu_rs_id) && busy[i] && 
+						qj[i] == 0 && qk[i] == 0) begin
 						rdy_alu_out <= `TRUE;
+						pc_alu_out <= pc[i];
 						opcode_alu_out <= op[i];
 						vj_alu_out <= vj[i];
 						vk_alu_out <= vk[i];
-						imm_alu_out <= imm[i];
+						imm_alu_out <= A[i];
 						rob_id_alu_out <= rob_id[i];
 						alu_rs_id <= i;
 						sent_to_alu <= `TRUE;
@@ -92,15 +113,28 @@ module RS(
 			end
 
 			//receive result from alu
-			if (rdy_alu_in) begin
+			if (rdy_a_cdb_in) begin
 				for (i = 0; i < `RS_SIZE; i = i + 1) begin
-					if (qj[i] == rob_id_alu_in) begin
+					if (qj[i] == rob_id_a_cdb_in) begin
 						qj[i] <= 0;
-						vj[i] <= result_alu_in;
+						vj[i] <= result_a_cdb_in;
 					end
-					if (qk[i] == rob_id_alu_in) begin
+					if (qk[i] == rob_id_a_cdb_in) begin
 						qk[i] <= 0;
-						vk[i] <= result_alu_in;
+						vk[i] <= result_a_cdb_in;
+					end
+				end
+			end
+
+			if (rdy_ls_cdb_in) begin
+				for (i = 0; i < `RS_SIZE; i = i + 1) begin
+					if (qj[i] == rob_id_ls_cdb_in) begin
+						qj[i] <= 0;
+						vj[i] <= result_ls_cdb_in;
+					end
+					if (qk[i] == rob_id_ls_cdb_in) begin
+						qk[i] <= 0;
+						vk[i] <= result_ls_cdb_in;
 					end
 				end
 			end
@@ -108,7 +142,7 @@ module RS(
 	end
 
 	always @(*) begin
-		assign rsfull_dp_out = rs_cnt >= `RS_SIZE - 1; // todo: is sign extended?
+		rsfull_dp_out = rs_cnt >= `RS_SIZE - 1; // todo: is sign extended?
 		for (i = 0; i < `RS_SIZE; i = i + 1) begin
 			if (~busy[i]) begin
 				free_rs_id = i;

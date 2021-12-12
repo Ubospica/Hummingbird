@@ -7,13 +7,17 @@ module Dispatcher(
 	
 	//Decoder
 	input wire rdy_dec_in,
+	input wire [`ADDR_WIDTH - 1 : 0] pc_dec_in,
 	input wire [`OP_TYPE_WIDTH - 1 : 0] op_type_dec_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_dec_in,
 	input wire [`REG_WIDTH - 1 : 0] rs1_dec_in, rs2_dec_in, rd_dec_in, //reg == 0 means the reg is not used
 	input wire [31 : 0] imm_dec_in,
+	output reg rdy_dispatch_dec_out,
 
 	//RS
+	input wire rs_full_rs_in,
 	output reg rdy_rs_out,
+	output reg [`ADDR_WIDTH - 1 : 0] pc_rs_out,
 	output reg [`OP_WIDTH - 1 : 0] opcode_rs_out,
 	output reg [`ROB_WIDTH - 1 : 0] qj_rs_out, qk_rs_out,
 	output reg [31 : 0] vj_rs_out, vk_rs_out,
@@ -29,72 +33,122 @@ module Dispatcher(
 	output reg [`ROB_WIDTH - 1 : 0] rd_rob_rf_out,
 
 	//ROB
-	input wire [`ROB_WIDTH - 1 : 0] robid_rob_in,
+	input wire rob_full_rob_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_rob_in,
 	output reg rdy_rob_out,
 	output reg [`OP_TYPE_WIDTH - 1 : 0] op_type_rob_out,
 	output reg [31 : 0] dest_rob_out,
 	// get ready value of rs1 or rs2 from rob
 	input wire rs1_rdy_rob_in, rs2_rdy_rob_in,
 	input wire [31 : 0] rs1_val_rob_in, rs2_val_rob_in,
-	output reg [`ROB_WIDTH - 1 : 0] rs1_rob_rob_out, rs2_rob_rob_out
+	output reg [`ROB_WIDTH - 1 : 0] rs1_rob_rob_out, rs2_rob_rob_out,
+
+	//LSB	
+	input wire lsb_full_lsb_in,
+	output reg rdy_lsb_out,
+	output reg [`OP_WIDTH - 1 : 0] opcode_lsb_out,
+	output reg [`ROB_WIDTH - 1 : 0] qj_lsb_out, qk_lsb_out,
+	output reg [31 : 0] vj_lsb_out, vk_lsb_out,
+	output reg [31 : 0] A_lsb_out,
+	output reg [`ROB_WIDTH : 0] rob_id_lsb_out
 );
 
+	reg can_dispatch;
+	reg [`ROB_WIDTH - 1 : 0] qj, qk;
+	reg [31 : 0] vj, vk;
 
 	always @(*) begin
 		if (rst_in) begin
-			rdy_rs_out = 0;
-			rdy_rf_out = 0;
-			rdy_rob_out = 0;
+			rdy_rf_out = `FALSE;
+			rdy_rob_out = `FALSE;
+			rdy_rs_out = `FALSE;
+			rdy_lsb_out = `FALSE;
+			rdy_dispatch_dec_out = `FALSE;
 		end
 		else if (rdy_in) begin
-			rdy_rs_out = rdy_dec_in;
-			rdy_rf_out = rdy_dec_in;
-			rdy_rob_out = rdy_dec_in;
+			rdy_rs_out = `FALSE;
+			rdy_rf_out = `FALSE;
+			rdy_rob_out = `FALSE;
+			rdy_lsb_out = `FALSE;
+			rdy_dispatch_dec_out = `FALSE;
+
 			if (rdy_dec_in) begin
-				//init rs
-				qj_rs_out = 0;
-				qk_rs_out = 0;
-				vj_rs_out = 0;
-				vk_rs_out = 0;
-				opcode_rs_out = opcode_dec_in;
-				A_rs_out = imm_dec_in;
+				can_dispatch = (!rob_full_rob_in) && op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in;
 
-				//init rob
-				op_type_rob_out = op_type_dec_in;
-				dest_rob_out = rd_dec_in; //modify when load & store
+				//rob, reg, qj, qk, vj, vk
+				if (can_dispatch) begin
+					//rob
+					rdy_rob_out = `TRUE;
+					op_type_rob_out = op_type_dec_in;
+					dest_rob_out = rd_dec_in; //modify when load & store
 
-				//init reg
-				rd_rf_out = rd_dec_in;
-				rd_rob_rf_out = robid_rob_in;
+					//rf
+					rdy_rf_out = `TRUE;
+					rd_rf_out = rd_dec_in;
+					rd_rob_rf_out = rob_id_rob_in;
 
-				//rs: rs1
-				rs1_rf_out = rs1_dec_in;
-				if (rs1_busy_rf_in) begin
-					rs1_rob_rob_out = rs1_rob_rf_in;
-					if (rs1_rdy_rob_in) begin
-						vj_rs_out = rs1_val_rob_in;
+					//qj, vj
+					qj = 0;
+					vj = 0;
+					if (rs1_dec_in != 0) begin
+						rs1_rf_out = rs1_dec_in;
+						if (rs1_busy_rf_in) begin
+							rs1_rob_rob_out = rs1_rob_rf_in;
+							if (rs1_rdy_rob_in) begin
+								vj = rs1_val_rob_in;
+							end
+							else begin
+								qj = rs1_rob_rf_in;
+							end
+						end
+						else begin
+							vj = rs1_val_rf_in;
+						end
 					end
+					
+					//qk, vk
+					qk = 0;
+					vk = 0;
+					if (rs2_dec_in != 0) begin
+						rs2_rf_out = rs2_dec_in;
+						if (rs2_busy_rf_in) begin
+							rs2_rob_rob_out = rs2_rob_rf_in;
+							if (rs2_rdy_rob_in) begin
+								vk = rs2_val_rob_in;
+							end
+							else begin
+								qk = rs2_rob_rf_in;
+							end
+						end
+						else begin
+							vk = rs2_val_rf_in;
+						end
+					end
+
+					//RS
+					if (op_type_dec_in == `OP_ARITH) begin
+						rdy_rs_out = `TRUE;
+						opcode_rs_out = opcode_dec_in;
+						qj_rs_out = qj;
+						qk_rs_out = qk;
+						vj_rs_out = vj;
+						vk_rs_out = vk;
+						A_rs_out = imm_dec_in;
+						rob_id_rs_out = rob_id_rob_in;
+					end
+					//LSB
 					else begin
-						qj_rs_out = rs1_rob_rf_in;
+						rdy_lsb_out = `TRUE;
+						opcode_lsb_out = opcode_dec_in;
+						qj_lsb_out = qj;
+						qk_lsb_out = qk;
+						vj_lsb_out = vj;
+						vk_lsb_out = vk;
+						A_lsb_out = imm_dec_in;
+						rob_id_lsb_out = rob_id_rob_in;
 					end
 				end
-				else begin
-					vj_rs_out = rs1_val_rf_in;
-				end
-				//rs2
-				rs2_rf_out = rs2_dec_in;
-				if (rs2_busy_rf_in) begin
-					rs2_rob_rob_out = rs2_rob_rf_in;
-					if (rs2_rdy_rob_in) begin
-						vk_rs_out = rs2_val_rob_in;
-					end
-					else begin
-						qk_rs_out = rs2_rob_rf_in;
-					end
-				end
-				else begin
-					vk_rs_out = rs2_val_rf_in;
-				end
+				rdy_dispatch_dec_out = `TRUE;
 			end
 		end
 	end

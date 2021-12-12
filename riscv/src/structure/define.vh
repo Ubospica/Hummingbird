@@ -25,6 +25,8 @@
 `define RS_SIZE 16
 `define ROB_WIDTH 4
 `define ROB_SIZE 16
+`define LSB_WIDTH 4
+`define LSB_SIZE 16
 
 // nonsense
 `define OP_WIDTH 7
@@ -35,7 +37,8 @@
 `define OP_ARITH 1
 `define OP_SAVE 2
 `define OP_LOAD 3
-`define OP_BRANCH 4
+`define OP_JUMP 4
+`define OP_BRANCH 5
 
 //OP List
 //copied since the value of op is nonsense

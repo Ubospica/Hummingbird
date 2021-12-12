@@ -7,20 +7,17 @@ module ALU(
 	
 	//RS
 	input wire rdy_rs_in,
+	input wire [`ADDR_WIDTH - 1 : 0] pc_rs_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_rs_in,
 	input wire [`DATA_WIDTH - 1 : 0] vj_rs_in, vk_rs_in, imm_rs_in,
 	input wire [`ROB_WIDTH - 1 : 0] rob_id_rs_in,
 	output reg idle_rs_out,
-	output reg rdy_rs_out,
-	output reg [`DATA_WIDTH - 1 : 0] result_rs_out,
-	output reg [`ROB_WIDTH - 1 : 0] rob_id_rs_out,
 
-	//ROB
-	output reg rdy_rob_out,
-	output reg [`DATA_WIDTH - 1 : 0] result_rob_out,
-	output reg [`ROB_WIDTH - 1 : 0] rob_id_rob_out,
-
-	//LSB
+	//CDB
+	output reg rdy_a_cdb_out,
+	output reg [`DATA_WIDTH - 1 : 0] result_a_cdb_out,
+	output reg [`ADDR_WIDTH - 1 : 0] new_pc_a_cdb_out,
+	output reg [`ROB_WIDTH - 1 : 0] rob_id_a_cdb_out
 );
 
 
@@ -33,19 +30,21 @@ module ALU(
 	// 	end
 	// end
 	reg [`DATA_WIDTH - 1 : 0] result;
+	reg [`ADDR_WIDTH - 1 : 0] pc_result;
 
 	always @(*) begin
+		idle_rs_out = `TRUE;
+		rdy_a_cdb_out = `FALSE;
 		if (rst_in) begin
-			idle_rs_out = `TRUE;
-			rdy_rs_out = `FALSE;
-			rdy_rob_out = `FALSE;
+			
 		end
 		else if (rdy_in) begin
 			if (rdy_rs_in == `TRUE) begin
 				idle_rs_out = `FALSE;
-				rdy_rs_out = `FALSE;
-				rdy_rob_out = `FALSE;
-				case (opcode_rs_in) begin
+				rdy_a_cdb_out = `FALSE;
+
+				// result
+				case (opcode_rs_in)
 					`LUI: result = imm_rs_in;
 					`ADD: result = vj_rs_in + vk_rs_in;
 					`SUB: result = vj_rs_in - vk_rs_in;
@@ -58,7 +57,6 @@ module ALU(
 					`SLT: result = $unsigned($signed(vj_rs_in) < $signed(vk_rs_in));
 					`SLTU: result = $unsigned(vj_rs_in < vk_rs_in);
 
-
 					`ADDI: result = vj_rs_in + imm_rs_in;
 					`XORI: result = vj_rs_in ^ imm_rs_in;
 					`ORI: result = vj_rs_in | imm_rs_in;
@@ -68,16 +66,30 @@ module ALU(
 					`SRAI: result = vj_rs_in >>> imm_rs_in;
 					`SLTI: result = $unsigned($signed(vj_rs_in) < $signed(imm_rs_in));
 					`SLTIU: result = $unsigned(vj_rs_in < imm_rs_in);
+					`AUIPC: result = pc_rs_in + imm_rs_in;
+					`JAL: result = pc_rs_in + 4;
+					`JALR: result = pc_rs_in + 4;
+					`BEQ: result = vj_rs_in == vk_rs_in;
+					`BNE: result = vj_rs_in != vk_rs_in;
+					`BLT: result = $signed(vj_rs_in) < $signed(vk_rs_in);
+					`BGE: result = $signed(vj_rs_in) >= $signed(vk_rs_in);
+					`BLTU: result = vj_rs_in < vk_rs_in;
+					`BGEU: result = vj_rs_in >= vk_rs_in;
 					default: result = 0;
-				end
+				endcase
 
-				result_rs_out = result;
-				rob_id_rs_out = rob_id_rs_in;
-				rdy_rs_out = `TRUE;
+				// pc_result
+				case (opcode_rs_in) 
+					`JAL: pc_result = pc_rs_in + imm_rs_in;
+					`JALR: pc_result = (vj_rs_in + imm_rs_in) & (~32'b1);
+					`BEQ, `BNE, `BLT, `BGE, `BLTU, `BGEU: pc_result = pc_rs_in + imm_rs_in;
+					default: pc_result = 0;
+				endcase
 
-				result_rob_out = result;
-				rob_id_rob_out = rob_id_rs_in;
-				rdy_rob_out = `TRUE;
+				result_a_cdb_out = result;
+				new_pc_a_cdb_out = pc_result;
+				rob_id_a_cdb_out = rob_id_rs_in;
+				rdy_a_cdb_out = `TRUE;
 
 				idle_rs_out = `TRUE;
 			end

@@ -12,68 +12,109 @@ module ROB(
 	output reg rob_full_dp_out,
 	output reg [`ROB_WIDTH - 1 : 0] rob_id_dp_out,
 	
-	input wire [`ROB_WIDTH - 1 : 0] rs1_rob_dp_in, rs2_rob_dp_in
+	input wire [`ROB_WIDTH - 1 : 0] rs1_rob_dp_in, rs2_rob_dp_in,
 	output reg rs1_rdy_dp_out, rs2_rdy_dp_out,
 	output reg [31 : 0] rs1_val_dp_out, rs2_val_dp_out,
 
-	input wire rdy_alu_in,
-	input wire [`DATA_WIDTH - 1 : 0] result_alu_in,
-	input wire [`ROB_WIDTH - 1 : 0] rob_id_alu_in,
-
 	//RegFile
-	output reg rdy_commit_reg_out,
-	output reg [`REG_WIDTH - 1 : 0] dest`_reg_out,
-	output reg [`DATA_WIDTH - 1 : 0] value_reg_out,
-	output reg [`ROB_WIDTH - 1 : 0] rob_id_reg_out
+	output reg rdy_commit_rf_out,
+	output reg [`REG_WIDTH - 1 : 0] dest_rf_out,
+	output reg [`DATA_WIDTH - 1 : 0] value_rf_out,
+	output reg [`ROB_WIDTH - 1 : 0] rob_id_rf_out,
+
+	//LSB
+	output reg [`ROB_WIDTH - 1 : 0] head_id_lsb_out,
+
+	//CDB
+	input wire rdy_a_cdb_in,
+	input wire [`DATA_WIDTH - 1 : 0] result_a_cdb_in,
+	input wire [`ADDR_WIDTH - 1 : 0] new_pc_a_cdb_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_a_cdb_in,
+	
+	input wire rdy_ls_cdb_in, 
+	input wire [`DATA_WIDTH - 1 : 0] result_ls_cdb_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_ls_cdb_in,
+
+	output reg refresh_rob_cdb_out,
+	output reg [`ADDR_WIDTH - 1 : 0] new_pc_if_out
 );
 
 	reg [`OP_TYPE_WIDTH - 1 : 0] op_type [`ROB_SIZE - 1 : 0];
 	reg [`ADDR_WIDTH - 1 : 0] dest [`ROB_SIZE - 1 : 0];
+	reg [`ADDR_WIDTH - 1 : 0] pc [`ROB_SIZE - 1 : 0];
 	reg [`DATA_WIDTH - 1 : 0] value [`ROB_SIZE - 1 : 0];
 	reg rdy [`ROB_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] head, tail;
-	reg rob_empty;
+	reg [`ROB_WIDTH : 0] rob_cnt;
+
+	reg refresh_rob;
 
 	always @(posedge clk_in) begin
 		if (rst_in) begin
-			head <= 0;
-			tail <= 0;
-			rdy_commit_reg_out <= `FALSE;
+			head <= 1;
+			tail <= 1;
+			rdy_commit_rf_out <= `FALSE;
+			rob_cnt <= 0;
+			refresh_rob <= `FALSE;
+		end
+		else if (rdy_in && refresh_rob) begin
+			head <= 1;
+			tail <= 1;
+			rdy_commit_rf_out <= `FALSE;
+			rob_cnt <= 0;
+			refresh_rob <= `FALSE;
 		end
 		else if (rdy_in) begin
 			if (rdy_dp_in) begin
 				op_type[tail] <= dest_dp_in;
 				dest[tail] <= dest_dp_in;
 				rdy[tail] <= `FALSE;
-				tail <= tail + 1;
+				tail <= (tail == `ROB_SIZE - 1) ? 1 : tail + 1;
+				rob_cnt <= rob_cnt + 1;
 			end
 
-			if (rdy_alu_in) begin
-				value[rob_id_alu_in] = result_alu_in;
-				rdy[rob_id_alu_in] = `TRUE;
+			if (rdy_a_cdb_in) begin
+				value[rob_id_a_cdb_in] <= result_a_cdb_in;
+				pc[rob_id_a_cdb_in] <= new_pc_a_cdb_in;
+				rdy[rob_id_a_cdb_in] <= `TRUE;
+			end
+
+			if (rdy_ls_cdb_in) begin
+				if(op_type[rob_id_ls_cdb_in] == `OP_LOAD)
+					value[rob_id_ls_cdb_in] <= result_ls_cdb_in;
+				rdy[rob_id_ls_cdb_in] <= `TRUE;
 			end
 
 			//commit
-			rdy_commit_reg_out = `FALSE;
-			if (!rob_empty && rdy[head] == `TRUE) begin
-				case (op_type[head])
-					`OP_ARITH: begin
-						rdy_commit_reg_out = `TRUE;
-						dest_reg_out = dest[head];
-						value_reg_out = value[head];
-						rob_id_reg_out = head;
-					end
-				endcase
-				rdy[head] = `FALSE;
-				head <= head + 1;
+			rdy_commit_rf_out <= `FALSE;
+			if (rob_cnt == 0 && rdy[head] == `TRUE) begin
+				// write to reg file
+				if (op_type[head] == `OP_JUMP || op_type[head] == `OP_ARITH) begin
+					rdy_commit_rf_out <= `TRUE;
+					dest_rf_out <= dest[head];
+					value_rf_out <= value[head];
+					rob_id_rf_out <= head;
+				end
+
+				// jump
+				if (op_type[head] == `OP_JUMP || 
+					(op_type[head] == `OP_BRANCH && value[head] == 1)) begin
+					refresh_rob <= `TRUE;
+					new_pc_if_out <= pc[head];
+				end
+
+				rdy[head] <= `FALSE;
+				head <= (head == `ROB_SIZE - 1) ? 1 : head + 1;
+				rob_cnt <= rob_cnt - 1;
 			end
 		end
 	end
 
 	always @(*) begin
-		rob_full_dp_out = $unsigned(tail - head) >= `ROB_SIZE - 2; //?
-		rob_empty = tail == head;
+		rob_full_dp_out = rob_cnt >= `ROB_SIZE - 3;
 		rob_id_dp_out = tail;
+
+		refresh_rob_cdb_out = refresh_rob;
 
 		//send value to dispatcher
 		rs1_rdy_dp_out = rdy[rs1_rob_dp_in];

@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module ROB(
@@ -8,13 +10,13 @@ module ROB(
 	
 	input wire rdy_dp_in,
 	input wire [`OP_TYPE_WIDTH - 1 : 0] op_type_dp_in,
-	input wire [31 : 0] dest_dp_in,
+	input wire [`ADDR_WIDTH - 1 : 0] dest_dp_in,
 	output reg rob_full_dp_out,
 	output reg [`ROB_WIDTH - 1 : 0] rob_id_dp_out,
 	
 	input wire [`ROB_WIDTH - 1 : 0] rs1_rob_dp_in, rs2_rob_dp_in,
 	output reg rs1_rdy_dp_out, rs2_rdy_dp_out,
-	output reg [31 : 0] rs1_val_dp_out, rs2_val_dp_out,
+	output reg [`DATA_WIDTH - 1 : 0] rs1_val_dp_out, rs2_val_dp_out,
 
 	//RegFile
 	output reg rdy_commit_rf_out,
@@ -66,7 +68,7 @@ module ROB(
 		end
 		else if (rdy_in) begin
 			if (rdy_dp_in) begin
-				op_type[tail] <= dest_dp_in;
+				op_type[tail] <= op_type_dp_in;
 				dest[tail] <= dest_dp_in;
 				rdy[tail] <= `FALSE;
 				tail <= (tail == `ROB_SIZE - 1) ? 1 : tail + 1;
@@ -87,9 +89,12 @@ module ROB(
 
 			//commit
 			rdy_commit_rf_out <= `FALSE;
-			if (rob_cnt == 0 && rdy[head] == `TRUE) begin
+			if (rob_cnt != 0 && rdy[head] == `TRUE) begin
 				// write to reg file
-				if (op_type[head] == `OP_JUMP || op_type[head] == `OP_ARITH) begin
+				// $display("commit rob=%d type=%d tm=%t", head, op_type[head], $realtime);
+				if ((op_type[head] == `OP_JUMP || op_type[head] == `OP_ARITH ||
+					op_type[head] == `OP_LOAD) && dest[head]) begin
+					// $display("write rd value=%d dest=%d", value[head], dest[head]);
 					rdy_commit_rf_out <= `TRUE;
 					dest_rf_out <= dest[head];
 					value_rf_out <= value[head];
@@ -99,6 +104,7 @@ module ROB(
 				// jump
 				if (op_type[head] == `OP_JUMP || 
 					(op_type[head] == `OP_BRANCH && value[head] == 1)) begin
+					// $display("jmp pc=%d", pc[head]);
 					refresh_rob <= `TRUE;
 					new_pc_if_out <= pc[head];
 				end
@@ -121,5 +127,7 @@ module ROB(
 		rs1_val_dp_out = value[rs1_rob_dp_in];
 		rs2_rdy_dp_out = rdy[rs2_rob_dp_in];
 		rs2_val_dp_out = value[rs2_rob_dp_in];
+
+		head_id_lsb_out = head;
 	end
 endmodule

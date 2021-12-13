@@ -1,4 +1,7 @@
 #!/bin/sh
+
+cd $(dirname $0)
+
 set -e
 prefix='/opt/riscv'
 rpath=$prefix/bin/

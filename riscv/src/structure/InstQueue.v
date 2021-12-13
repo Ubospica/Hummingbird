@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module InstQueue(
@@ -6,14 +8,14 @@ module InstQueue(
 	input wire rdy_in,
 	
 	//from / to IF
-	input wire [31 : 0] inst_if_in,
+	input wire [`INST_WIDTH - 1 : 0] inst_if_in,
 	input wire rdy_inst_if_in,
 	input wire [`ADDR_WIDTH - 1 : 0] pc_if_in,
-	output reg iqfull_if_out,
+	output reg iq_full_if_out,
 
 	//Decoder
 	input wire rdy_dispatch_dec_in, 
-	output reg [31 : 0] inst_dec_out,
+	output reg [`INST_WIDTH - 1 : 0] inst_dec_out,
 	output reg [`ADDR_WIDTH - 1 : 0] pc_dec_out,
 	output reg rdy_dec_out,
 
@@ -32,12 +34,12 @@ module InstQueue(
 		if (rst_in) begin
 			head <= 0;
 			tail <= 0;
-			iqfull_if_out <= `FALSE;
+			iq_full_if_out <= `FALSE;
 		end
 		else if (rdy_in && refresh_rob_cdb_in) begin
 			head <= 0;
 			tail <= 0;
-			iqfull_if_out <= `FALSE;
+			iq_full_if_out <= `FALSE;
 		end
 		else if (rdy_in) begin
 			if (rdy_inst_if_in) begin
@@ -53,7 +55,7 @@ module InstQueue(
 	end
 
 	always @(*) begin
-		iqfull_if_out = head == tail + `IQ_WIDTH'd1;
+		iq_full_if_out = head == tail + `IQ_WIDTH'd1;
 		inst_dec_out = inst_queue[head];
 		pc_dec_out = pc[head];
 		rdy_dec_out = head != tail;

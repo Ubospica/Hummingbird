@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module LSCtrl(
@@ -9,7 +11,7 @@ module LSCtrl(
 	input wire rdy_lsb_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_lsb_in,
 	input wire [`DATA_WIDTH - 1 : 0] vj_lsb_in, vk_lsb_in, imm_lsb_in,
-	input wire [`ROB_WIDTH : 0] rob_id_lsb_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_lsb_in,
 	output reg idle_lsb_out,
 
 	//MemCtrl
@@ -52,9 +54,12 @@ module LSCtrl(
 			rdy_data_mc_out <= `FALSE;
 
 			if (!idle_out) begin
+				rdy_data_mc_out <= `TRUE;
 				if (rdy_data_mc_in) begin
-					idle_out <= `FALSE;
+					idle_out <= `TRUE;
 					rob_id_ls_cdb_out <= rob_id;
+					rdy_data_mc_out <= `FALSE;
+					rdy_ls_cdb_out <= `TRUE;
 					//CDB
 					if (opcode_lsb_in >= `LB && opcode_lsb_in <= `LHU) begin
 						case (opcode_lsb_in)

@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module RS(
@@ -11,10 +13,10 @@ module RS(
 	input wire [`ADDR_WIDTH - 1 : 0] pc_dp_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_dp_in,
 	input wire [`ROB_WIDTH - 1 : 0] qj_dp_in, qk_dp_in,
-	input wire [31 : 0] vj_dp_in, vk_dp_in,
-	input wire [31 : 0] A_dp_in,
-	input wire [`ROB_WIDTH : 0] rob_id_dp_in,
-	output reg rsfull_dp_out,
+	input wire [`DATA_WIDTH - 1 : 0] vj_dp_in, vk_dp_in,
+	input wire [`DATA_WIDTH - 1 : 0] A_dp_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_dp_in,
+	output reg rs_full_dp_out,
 
 	//ALU
 	input wire idle_alu_in,
@@ -38,12 +40,12 @@ module RS(
 	reg busy [`RS_SIZE - 1 : 0];
 	// reg [`OP_TYPE_WIDTH - 1 : 0] op_type [`RS_SIZE - 1 : 0];
 	reg [`OP_WIDTH - 1 : 0] op [`RS_SIZE - 1 : 0];
-	reg [`OP_WIDTH - 1 : 0] pc [`RS_SIZE - 1 : 0];
+	reg [`ADDR_WIDTH - 1 : 0] pc [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] qj [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] qk [`RS_SIZE - 1 : 0];
-	reg [`INST_WIDTH - 1 : 0] vj [`RS_SIZE - 1 : 0];
-	reg [`INST_WIDTH - 1 - 1 : 0] vk [`RS_SIZE - 1 : 0];
-	reg [`INST_WIDTH - 1 : 0] A [`RS_SIZE - 1 : 0];
+	reg [`DATA_WIDTH - 1 : 0] vj [`RS_SIZE - 1 : 0];
+	reg [`DATA_WIDTH - 1 - 1 : 0] vk [`RS_SIZE - 1 : 0];
+	reg [`DATA_WIDTH - 1 : 0] A [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] rob_id [`RS_SIZE - 1 : 0];
 
 	// todo: use for loop? one i?
@@ -91,6 +93,7 @@ module RS(
 			if (sent_to_alu) begin
 				busy[alu_rs_id] <= `FALSE;
 				rs_cnt <= rs_cnt - 1;
+				sent_to_alu <= `FALSE;
 			end
 
 			//send to ALU
@@ -142,7 +145,7 @@ module RS(
 	end
 
 	always @(*) begin
-		rsfull_dp_out = rs_cnt >= `RS_SIZE - 1; // todo: is sign extended?
+		rs_full_dp_out = rs_cnt >= `RS_SIZE - 1; // todo: is sign extended?
 		for (i = 0; i < `RS_SIZE; i = i + 1) begin
 			if (~busy[i]) begin
 				free_rs_id = i;

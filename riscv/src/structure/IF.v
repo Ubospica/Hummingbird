@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module IF(
@@ -7,14 +9,14 @@ module IF(
 	
 	//from / to MemCtrl
 	input wire rdy_inst_mc_in,
-	input wire [31 : 0] inst_mc_in,
-	output reg [31 : 0] inst_addr_mc_out,
+	input wire [`INST_WIDTH - 1 : 0] inst_mc_in,
+	output reg [`ADDR_WIDTH - 1 : 0] inst_addr_mc_out,
 	output reg rdy_inst_mc_out,
 
 	//from / to InstQueue
-	input wire iqfull_iq_in,
+	input wire iq_full_iq_in,
 	output reg rdy_inst_iq_out,
-	output reg [31 : 0] inst_iq_out,
+	output reg [`INST_WIDTH - 1 : 0] inst_iq_out,
 	output reg [`ADDR_WIDTH - 1 : 0] pc_iq_out,
 
 	//ROB
@@ -22,7 +24,7 @@ module IF(
 	input wire [`ADDR_WIDTH - 1 : 0] new_pc_rob_in
 );
 
-	reg[31 : 0] pc;
+	reg[`ADDR_WIDTH - 1 : 0] pc;
 
 	always @(posedge clk_in) begin
 		if (rst_in) begin
@@ -46,9 +48,12 @@ module IF(
 				inst_addr_mc_out <= pc;
 			end
 		end
+		else begin
+			
+		end
 	end
 
 	always @(*) begin
-		rdy_inst_mc_out = ~iqfull_iq_in;
+		rdy_inst_mc_out = ~iq_full_iq_in;
 	end
 endmodule

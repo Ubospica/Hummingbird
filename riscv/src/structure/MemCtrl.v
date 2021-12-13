@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 // status
@@ -27,8 +29,8 @@ module MemCtrl(
 
 	//from / to IF
 	input wire rdy_inst_if_in,
-	input wire [31 : 0] inst_addr_if_in,
-	output reg [31 : 0] inst_if_out,
+	input wire [`INST_WIDTH - 1 : 0] inst_addr_if_in,
+	output reg [`INST_WIDTH - 1 : 0] inst_if_out,
 	output reg rdy_inst_if_out,
 
 	//from / to LSCtrl
@@ -47,15 +49,16 @@ module MemCtrl(
 	// only meaningful when status != `IDLE
 	reg [2 : 0] stage, end_stage;
 	reg [7 : 0] read_buf[3 : 0];
+	wire [31 : 0] tmp1 = {read_buf[3], read_buf[2], read_buf[1], read_buf[0]};
 	integer i;
 
 	always @(posedge clk_in) begin
 		if (rst_in) begin
 			status <= `IDLE;
 			stage <= `S0;
-	 		for (i = 0; i <= 3; ++i) begin
-	 			read_buf[i] <= 0;
-	 		end
+			for (i = 0; i <= 3; ++i) begin
+				read_buf[i] <= 0;
+			end
 			rdy_inst_if_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 		end
@@ -69,20 +72,14 @@ module MemCtrl(
 			rdy_data_lsc_out <= `FALSE;
 		end
 		else if (rdy_in) begin
-			rdy_inst_if_out = `FALSE;
-			rdy_data_lsc_out = `FALSE;
+			rdy_inst_if_out <= `FALSE;
+			rdy_data_lsc_out <= `FALSE;
 
-			if ((status == `READ_INST && !rdy_inst_if_in) ||
-				((status == `READ_DATA || status == `WRITE_DATA) && !rdy_data_lsc_in)) begin
-				status <= `IDLE;
-				stage <= `S0;
-			end
-
-			else if (status == `IDLE || stage == end_stage) begin
+			if (status == `IDLE || stage == end_stage) begin
 				// start new status & stage
 				status <= `IDLE;
 				stage <= `S0;
-				if (rdy_data_lsc_in) begin
+				if (rdy_data_lsc_in) begin                 
 					status <= wr_lsc_in == `MEM_R ? `READ_DATA : `WRITE_DATA;
 					end_stage <= `S0 + len_lsc_in + 2;
 				end
@@ -90,6 +87,11 @@ module MemCtrl(
 					status <= `READ_INST;
 					end_stage <= `S6;
 				end
+			end
+			else if ((status == `READ_INST && !rdy_inst_if_in) ||
+				((status == `READ_DATA || status == `WRITE_DATA) && !rdy_data_lsc_in)) begin
+				status <= `IDLE;
+				stage <= `S0;
 			end
 
 			else if (stage == end_stage - 1) begin
@@ -119,7 +121,7 @@ module MemCtrl(
 			else begin
 				stage <= stage + 1;
 				if (status == `READ_DATA || status == `READ_INST) begin
-					read_buf[stage - 1] = mem_din;
+					read_buf[stage - 1] <= mem_din;
 				end
 			end
 		end

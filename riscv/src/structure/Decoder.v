@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module Decoder(
@@ -6,7 +8,7 @@ module Decoder(
 	input wire rdy_in,
 	
 	//InstQueue
-	input wire [31 : 0] inst_iq_in,
+	input wire [`INST_WIDTH - 1 : 0] inst_iq_in,
 	input wire [`ADDR_WIDTH - 1 : 0] pc_iq_in,
 	input wire rdy_iq_in,
 	output reg rdy_dispatch_iq_out,
@@ -18,7 +20,7 @@ module Decoder(
 	output reg [`OP_TYPE_WIDTH - 1 : 0] op_type_dp_out,
 	output reg [`OP_WIDTH - 1 : 0] opcode_dp_out,
 	output reg [`REG_WIDTH - 1 : 0] rs1_dp_out, rs2_dp_out, rd_dp_out, //reg == 0 means the reg is not used
-	output reg [31 : 0] imm_dp_out
+	output reg [`DATA_WIDTH - 1 : 0] imm_dp_out
 );
 
 	wire [6 : 0] funct7 = inst_iq_in[31 : 25];

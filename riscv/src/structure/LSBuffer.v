@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module LSBuffer(
@@ -9,9 +11,9 @@ module LSBuffer(
 	input wire rdy_dp_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_dp_in,
 	input wire [`ROB_WIDTH - 1 : 0] qj_dp_in, qk_dp_in,
-	input wire [31 : 0] vj_dp_in, vk_dp_in,
-	input wire [31 : 0] A_dp_in,
-	input wire [`ROB_WIDTH : 0] rob_id_dp_in,
+	input wire [`DATA_WIDTH - 1 : 0] vj_dp_in, vk_dp_in,
+	input wire [`DATA_WIDTH - 1 : 0] A_dp_in,
+	input wire [`ROB_WIDTH - 1 : 0] rob_id_dp_in,
 	output reg lsb_full_dp_out,
 	
 	//ROB
@@ -22,7 +24,7 @@ module LSBuffer(
 	output reg rdy_lsc_out,
 	output reg [`OP_WIDTH - 1 : 0] opcode_lsc_out,
 	output reg [`DATA_WIDTH - 1 : 0] vj_lsc_out, vk_lsc_out, imm_lsc_out,
-	output reg [`ROB_WIDTH : 0] rob_id_lsc_out,
+	output reg [`ROB_WIDTH - 1 : 0] rob_id_lsc_out,
 	
 	input wire rdy_a_cdb_in, 
 	input wire [`DATA_WIDTH - 1 : 0] result_a_cdb_in,
@@ -98,18 +100,22 @@ module LSBuffer(
 						qj[i] <= 0;
 						vj[i] <= result_a_cdb_in;
 					end
-					if (qj[i] == rob_id_a_cdb_in) begin
-						qj[i] <= 0;
-						vj[i] <= result_a_cdb_in;
+					if (qk[i] == rob_id_a_cdb_in) begin
+						qk[i] <= 0;
+						vk[i] <= result_a_cdb_in;
 					end
 				end
 			end
 
 			if (rdy_ls_cdb_in) begin
-				for (i = 0; i < `RS_SIZE; i = i + 1) begin
+				for (i = 0; i < `LSB_SIZE; i = i + 1) begin
 					if (qj[i] == rob_id_ls_cdb_in) begin
 						qj[i] <= 0;
 						vj[i] <= result_ls_cdb_in;
+					end
+					if (qk[i] == rob_id_ls_cdb_in) begin
+						qk[i] <= 0;
+						vk[i] <= result_ls_cdb_in;
 					end
 				end
 			end

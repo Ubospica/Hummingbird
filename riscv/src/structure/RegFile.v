@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module RegFile(
@@ -10,7 +12,7 @@ module RegFile(
 	input wire [`REG_WIDTH - 1 : 0] rs1_dp_in, rs2_dp_in, rd_dp_in,
 	input wire [`ROB_WIDTH - 1 : 0] rd_rob_dp_in,
 	output reg rs1_busy_dp_out, rs2_busy_dp_out,
-	output reg [31 : 0] rs1_val_dp_out, rs2_val_dp_out,
+	output reg [`DATA_WIDTH - 1 : 0] rs1_val_dp_out, rs2_val_dp_out,
 	output reg [`ROB_WIDTH - 1 : 0] rs1_rob_dp_out, rs2_rob_dp_out,
 
 	//ROB
@@ -31,13 +33,16 @@ module RegFile(
 	always @(posedge clk_in) begin
 		if (rst_in) begin
 			for (i = 0; i < `REG_SIZE; i = i + 1) begin
-				busy[i] = `FALSE;
-				value[i] = 0;
+				busy[i] <= `FALSE;
+				value[i] <= 0;
 			end 
 		end
 		else if (rdy_in && refresh_rob_cdb_in) begin
 			for (i = 0; i < `REG_SIZE; i = i + 1) begin
-				busy[i] = `FALSE;
+				busy[i] <= `FALSE;
+			end
+			if (rdy_commit_rob_in) begin
+				value[dest_rob_in] <= value_rob_in;
 			end
 		end
 		else if (rdy_in) begin

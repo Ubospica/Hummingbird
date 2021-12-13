@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 `include "define.vh"
 
 module Dispatcher(
@@ -11,22 +13,12 @@ module Dispatcher(
 	input wire [`OP_TYPE_WIDTH - 1 : 0] op_type_dec_in,
 	input wire [`OP_WIDTH - 1 : 0] opcode_dec_in,
 	input wire [`REG_WIDTH - 1 : 0] rs1_dec_in, rs2_dec_in, rd_dec_in, //reg == 0 means the reg is not used
-	input wire [31 : 0] imm_dec_in,
+	input wire [`DATA_WIDTH - 1 : 0] imm_dec_in,
 	output reg rdy_dispatch_dec_out,
-
-	//RS
-	input wire rs_full_rs_in,
-	output reg rdy_rs_out,
-	output reg [`ADDR_WIDTH - 1 : 0] pc_rs_out,
-	output reg [`OP_WIDTH - 1 : 0] opcode_rs_out,
-	output reg [`ROB_WIDTH - 1 : 0] qj_rs_out, qk_rs_out,
-	output reg [31 : 0] vj_rs_out, vk_rs_out,
-	output reg [31 : 0] A_rs_out,
-	output reg [`ROB_WIDTH : 0] rob_id_rs_out,
 
 	//RegFile
 	input wire rs1_busy_rf_in, rs2_busy_rf_in,
-	input wire [31 : 0] rs1_val_rf_in, rs2_val_rf_in,
+	input wire [`DATA_WIDTH - 1 : 0] rs1_val_rf_in, rs2_val_rf_in,
 	input wire [`ROB_WIDTH - 1 : 0] rs1_rob_rf_in, rs2_rob_rf_in,
 	output reg rdy_rf_out,
 	output reg [`REG_WIDTH - 1 : 0] rs1_rf_out, rs2_rf_out, rd_rf_out,
@@ -37,20 +29,30 @@ module Dispatcher(
 	input wire [`ROB_WIDTH - 1 : 0] rob_id_rob_in,
 	output reg rdy_rob_out,
 	output reg [`OP_TYPE_WIDTH - 1 : 0] op_type_rob_out,
-	output reg [31 : 0] dest_rob_out,
+	output reg [`ADDR_WIDTH - 1 : 0] dest_rob_out,
 	// get ready value of rs1 or rs2 from rob
 	input wire rs1_rdy_rob_in, rs2_rdy_rob_in,
-	input wire [31 : 0] rs1_val_rob_in, rs2_val_rob_in,
+	input wire [`DATA_WIDTH - 1 : 0] rs1_val_rob_in, rs2_val_rob_in,
 	output reg [`ROB_WIDTH - 1 : 0] rs1_rob_rob_out, rs2_rob_rob_out,
+	
+	//RS
+	input wire rs_full_rs_in,
+	output reg rdy_rs_out,
+	output reg [`ADDR_WIDTH - 1 : 0] pc_rs_out,
+	output reg [`OP_WIDTH - 1 : 0] opcode_rs_out,
+	output reg [`ROB_WIDTH - 1 : 0] qj_rs_out, qk_rs_out,
+	output reg [`DATA_WIDTH - 1 : 0] vj_rs_out, vk_rs_out,
+	output reg [`DATA_WIDTH - 1 : 0] A_rs_out,
+	output reg [`ROB_WIDTH - 1 : 0] rob_id_rs_out,
 
 	//LSB	
 	input wire lsb_full_lsb_in,
 	output reg rdy_lsb_out,
 	output reg [`OP_WIDTH - 1 : 0] opcode_lsb_out,
 	output reg [`ROB_WIDTH - 1 : 0] qj_lsb_out, qk_lsb_out,
-	output reg [31 : 0] vj_lsb_out, vk_lsb_out,
-	output reg [31 : 0] A_lsb_out,
-	output reg [`ROB_WIDTH : 0] rob_id_lsb_out
+	output reg [`DATA_WIDTH - 1 : 0] vj_lsb_out, vk_lsb_out,
+	output reg [`DATA_WIDTH - 1 : 0] A_lsb_out,
+	output reg [`ROB_WIDTH - 1 : 0] rob_id_lsb_out
 );
 
 	reg can_dispatch;
@@ -70,13 +72,15 @@ module Dispatcher(
 			rdy_rf_out = `FALSE;
 			rdy_rob_out = `FALSE;
 			rdy_lsb_out = `FALSE;
-			rdy_dispatch_dec_out = `FALSE;
-
+			// rdy_dispatch_dec_out = `FALSE;
+			rdy_dispatch_dec_out = rdy_dec_in && (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
+			// $display("ww1 %d %t", rdy_dispatch_dec_out, $realtime);
 			if (rdy_dec_in) begin
-				can_dispatch = (!rob_full_rob_in) && op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in;
+				can_dispatch = (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
 
 				//rob, reg, qj, qk, vj, vk
 				if (can_dispatch) begin
+					// rdy_dispatch_dec_out = `TRUE;
 					//rob
 					rdy_rob_out = `TRUE;
 					op_type_rob_out = op_type_dec_in;
@@ -126,13 +130,15 @@ module Dispatcher(
 					end
 
 					//RS
-					if (op_type_dec_in == `OP_ARITH) begin
+					if (op_type_dec_in == `OP_ARITH || op_type_dec_in == `OP_JUMP || 
+						op_type_dec_in == `OP_BRANCH) begin
 						rdy_rs_out = `TRUE;
 						opcode_rs_out = opcode_dec_in;
 						qj_rs_out = qj;
 						qk_rs_out = qk;
 						vj_rs_out = vj;
 						vk_rs_out = vk;
+						pc_rs_out = pc_dec_in;
 						A_rs_out = imm_dec_in;
 						rob_id_rs_out = rob_id_rob_in;
 					end
@@ -148,7 +154,6 @@ module Dispatcher(
 						rob_id_lsb_out = rob_id_rob_in;
 					end
 				end
-				rdy_dispatch_dec_out = `TRUE;
 			end
 		end
 	end

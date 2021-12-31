@@ -1,3 +1,5 @@
 riscv/test/
 *.tmp
 wave.vcd
+tmp
+a.out

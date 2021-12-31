@@ -65,17 +65,6 @@ module LSBuffer(
 		end
 		else if (rdy_in) begin
 
-			if (rdy_dp_in) begin
-				op[tail] <= opcode_dp_in;
-				qj[tail] <= qj_dp_in;
-				vj[tail] <= vj_dp_in;
-				qk[tail] <= qk_dp_in;
-				vk[tail] <= vk_dp_in;
-				A[tail] <= A_dp_in;
-				rob_id[tail] <= rob_id_dp_in;
-				tail <= tail + 1;
-			end
-
 			//send to LSCtrl
 			no_execute <= `FALSE;
 			rdy_lsc_out <= `FALSE;
@@ -118,6 +107,42 @@ module LSBuffer(
 						vk[i] <= result_ls_cdb_in;
 					end
 				end
+			end
+
+			// bug: modification to lsb to be occupied overwrited by cdb change as unused lsb
+			if (rdy_dp_in) begin
+				op[tail] <= opcode_dp_in;
+				qj[tail] <= qj_dp_in;
+				vj[tail] <= vj_dp_in;
+				qk[tail] <= qk_dp_in;
+				vk[tail] <= vk_dp_in;
+				A[tail] <= A_dp_in;
+				rob_id[tail] <= rob_id_dp_in;
+
+				// bug: same as rs
+				if (rdy_a_cdb_in) begin
+					if (qj_dp_in == rob_id_a_cdb_in) begin
+						qj[tail] <= 0;
+						vj[tail] <= result_a_cdb_in;
+					end
+					if (qk_dp_in == rob_id_a_cdb_in) begin
+						qk[tail] <= 0;
+						vk[tail] <= result_a_cdb_in;
+					end
+				end
+
+				if (rdy_ls_cdb_in) begin
+					if (qj_dp_in == rob_id_ls_cdb_in) begin
+						qj[tail] <= 0;
+						vj[tail] <= result_ls_cdb_in;
+					end
+					if (qk_dp_in == rob_id_ls_cdb_in) begin
+						qk[tail] <= 0;
+						vk[tail] <= result_ls_cdb_in;
+					end
+				end
+
+				tail <= tail + 1;
 			end
 		end
 	end

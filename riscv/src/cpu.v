@@ -39,8 +39,11 @@ module cpu(
 
 		end
 		else begin
+`ifdef DEBUG
 			i <= i + 1;
-			// $display("clk %d %t %d", i, $time, rdy_inst_mc_if);
+			if (i % 100000 == 0)
+				$display("clk %d %t", i, $time);
+`endif
 		end
 	end
 
@@ -54,10 +57,20 @@ module cpu(
 	wire [`DATA_WIDTH - 1 : 0] result_ls_cdb;
 	wire [`ROB_WIDTH - 1 : 0] rob_id_ls_cdb;
 
-	wire rdy_inst_if_mc;
-	wire [`INST_WIDTH - 1 : 0] inst_addr_if_mc;
-	wire [`INST_WIDTH - 1 : 0] inst_mc_if;
-	wire rdy_inst_mc_if;
+	// wire rdy_inst_if_mc;
+	// wire [`INST_WIDTH - 1 : 0] inst_addr_if_mc;
+	// wire [`INST_WIDTH - 1 : 0] inst_mc_if;
+	// wire rdy_inst_mc_if;
+
+	wire rdy_inst_ic_mc;
+	wire [`INST_WIDTH - 1 : 0] inst_addr_ic_mc;
+	wire [`INST_WIDTH - 1 : 0] inst_mc_ic;
+	wire rdy_inst_mc_ic;
+
+	wire [`ADDR_WIDTH - 1 : 0] pc_if_ic;
+	wire rdy_if_ic;
+	wire [`INST_WIDTH - 1 : 0] inst_ic_if;
+	wire rdy_ic_if;
 
 	wire rdy_data_lsc_mc;
 	wire wr_lsc_mc;
@@ -125,7 +138,6 @@ module cpu(
 	wire [`DATA_WIDTH - 1 : 0] value_rob_rf;
 	wire [`ROB_WIDTH - 1 : 0] rob_id_rob_rf;
 
-	
 	wire [`ROB_WIDTH - 1 : 0] head_id_rob_lsb;
 
 	wire idle_alu_rs;
@@ -141,6 +153,10 @@ module cpu(
 	wire [`ROB_WIDTH - 1 : 0] rob_id_lsb_lsc;
 	wire idle_lsc_lsb;
 
+`ifdef DEBUG
+	wire [`ADDR_WIDTH - 1 : 0] pc_dp_rob;
+`endif
+
 	MemCtrl MemCtrl(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
@@ -151,13 +167,11 @@ module cpu(
 		.mem_a(mem_a),
 		.mem_wr(mem_wr),
 
-		//from / to IF
-		.rdy_inst_if_in(rdy_inst_if_mc),
-		.inst_addr_if_in(inst_addr_if_mc),
-		.inst_if_out(inst_mc_if),
-		.rdy_inst_if_out(rdy_inst_mc_if),
+		.rdy_inst_ic_in(rdy_inst_ic_mc),
+		.inst_addr_ic_in(inst_addr_ic_mc),
+		.inst_ic_out(inst_mc_ic),
+		.rdy_inst_ic_out(rdy_inst_mc_ic),
 
-		//from / to LSCtrl
 		.rdy_data_lsc_in(rdy_data_lsc_mc),
 		.wr_lsc_in(wr_lsc_mc),
 		.addr_lsc_in(addr_lsc_mc),
@@ -169,18 +183,32 @@ module cpu(
 		.refresh_rob_cdb_in(refresh_rob_cdb)
 	);
 
+	ICache ICache(
+		.clk_in(clk_in),
+		.rst_in(rst_in),
+		.rdy_in(rdy_in),
+		
+		.pc_if_in(pc_if_ic),
+		.rdy_if_in(rdy_if_ic),
+		.inst_if_out(inst_ic_if),
+		.rdy_if_out(rdy_ic_if),
+		
+		.inst_mc_in(inst_mc_ic),
+		.rdy_inst_mc_in(rdy_inst_mc_ic),
+		.inst_addr_mc_out(inst_addr_ic_mc),
+		.rdy_inst_mc_out(rdy_inst_ic_mc)
+	);
+
 	IF IF(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
 		.rdy_in(rdy_in),
 		
-		//from / to MemCtrl
-		.rdy_inst_mc_in(rdy_inst_mc_if),
-		.inst_mc_in(inst_mc_if),
-		.inst_addr_mc_out(inst_addr_if_mc),
-		.rdy_inst_mc_out(rdy_inst_if_mc),
+		.inst_ic_in(inst_ic_if),
+		.rdy_ic_in(rdy_ic_if),
+		.pc_ic_out(pc_if_ic),
+		.rdy_ic_out(rdy_if_ic),
 
-		//from / to InstQueue
 		.iq_full_iq_in(iq_full_iq_if),
 		.rdy_inst_iq_out(rdy_inst_if_iq),
 		.inst_iq_out(inst_if_iq),
@@ -274,6 +302,10 @@ module cpu(
 		.rs1_rdy_rob_in(rs1_rdy_rob_dp), .rs2_rdy_rob_in(rs2_rdy_rob_dp),
 		.rs1_val_rob_in(rs1_val_rob_dp), .rs2_val_rob_in(rs2_val_rob_dp),
 		.rs1_rob_rob_out(rs1_rob_dp_rob), .rs2_rob_rob_out(rs2_rob_dp_rob),
+
+`ifdef DEBUG
+		.pc_rob_out(pc_dp_rob),
+`endif
 
 		//LSB	
 		.lsb_full_lsb_in(lsb_full_lsb_dp),
@@ -376,7 +408,9 @@ module cpu(
 		.rs1_rob_dp_in(rs1_rob_dp_rob), .rs2_rob_dp_in(rs2_rob_dp_rob),
 		.rs1_rdy_dp_out(rs1_rdy_rob_dp), .rs2_rdy_dp_out(rs2_rdy_rob_dp),
 		.rs1_val_dp_out(rs1_val_rob_dp), .rs2_val_dp_out(rs2_val_rob_dp),
-
+`ifdef DEBUG
+		.pc_dp_in(pc_dp_rob),
+`endif
 		//RegFile
 		.rdy_commit_rf_out(rdy_commit_rob_rf),
 		.dest_rf_out(dest_rob_rf),

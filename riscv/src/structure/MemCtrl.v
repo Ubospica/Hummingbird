@@ -2,6 +2,34 @@
 
 `include "define.vh"
 
+module MemCtrl(
+	input wire clk_in,
+	input wire rst_in,
+	input wire rdy_in,
+
+	input wire [7 : 0] mem_din,
+	output reg [7 : 0] mem_dout,
+	output reg [31 : 0] mem_a,
+	output reg mem_wr,
+
+	//IC
+	input wire rdy_inst_ic_in,
+	input wire [`INST_WIDTH - 1 : 0] inst_addr_ic_in,
+	output reg [`INST_WIDTH - 1 : 0] inst_ic_out,
+	output reg rdy_inst_ic_out,
+
+	//from / to LSCtrl
+	input wire rdy_data_lsc_in,
+	input wire wr_lsc_in,
+	input wire [`ADDR_WIDTH - 1 : 0] addr_lsc_in,
+	input wire [2 : 0] len_lsc_in,
+	input wire [`DATA_WIDTH - 1 : 0] data_s_lsc_in,
+	output reg [`DATA_WIDTH - 1 : 0] data_l_lsc_out,
+	output reg rdy_data_lsc_out,
+	
+	input wire refresh_rob_cdb_in
+);
+
 // status
 `define IDLE 0
 `define READ_INST 1
@@ -17,34 +45,6 @@
 `define S5 3'd5
 `define S6 3'd6
 
-module MemCtrl(
-	input wire clk_in,
-	input wire rst_in,
-	input wire rdy_in,
-
-	input wire [7 : 0] mem_din,
-	output reg [7 : 0] mem_dout,
-	output reg [31 : 0] mem_a,
-	output reg mem_wr,
-
-	//from / to IF
-	input wire rdy_inst_if_in,
-	input wire [`INST_WIDTH - 1 : 0] inst_addr_if_in,
-	output reg [`INST_WIDTH - 1 : 0] inst_if_out,
-	output reg rdy_inst_if_out,
-
-	//from / to LSCtrl
-	input wire rdy_data_lsc_in,
-	input wire wr_lsc_in,
-	input wire [`ADDR_WIDTH - 1 : 0] addr_lsc_in,
-	input wire [2 : 0] len_lsc_in,
-	input wire [`DATA_WIDTH - 1 : 0] data_s_lsc_in,
-	output reg [`DATA_WIDTH - 1 : 0] data_l_lsc_out,
-	output reg rdy_data_lsc_out,
-	
-	input wire refresh_rob_cdb_in
-);
-
 	reg [2 : 0] status;
 	// only meaningful when status != `IDLE
 	reg [2 : 0] stage, end_stage;
@@ -59,7 +59,7 @@ module MemCtrl(
 			for (i = 0; i <= 3; ++i) begin
 				read_buf[i] <= 0;
 			end
-			rdy_inst_if_out <= `FALSE;
+			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 		end
 		else if (rdy_in && refresh_rob_cdb_in) begin
@@ -68,11 +68,11 @@ module MemCtrl(
 	 		for (i = 0; i <= 3; ++i) begin
 	 			read_buf[i] <= 0;
 	 		end
-			rdy_inst_if_out <= `FALSE;
+			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 		end
 		else if (rdy_in) begin
-			rdy_inst_if_out <= `FALSE;
+			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 
 			if (status == `IDLE || stage == end_stage) begin
@@ -83,12 +83,12 @@ module MemCtrl(
 					status <= wr_lsc_in == `MEM_R ? `READ_DATA : `WRITE_DATA;
 					end_stage <= `S0 + len_lsc_in + 2;
 				end
-				else if (rdy_inst_if_in) begin
+				else if (rdy_inst_ic_in) begin
 					status <= `READ_INST;
 					end_stage <= `S6;
 				end
 			end
-			else if ((status == `READ_INST && !rdy_inst_if_in) ||
+			else if ((status == `READ_INST && !rdy_inst_ic_in) ||
 				((status == `READ_DATA || status == `WRITE_DATA) && !rdy_data_lsc_in)) begin
 				status <= `IDLE;
 				stage <= `S0;
@@ -102,8 +102,8 @@ module MemCtrl(
 				stage <= stage + 1;
 				// response
 				if (status == `READ_INST) begin
-					inst_if_out <= {mem_din, read_buf[2], read_buf[1], read_buf[0]};
-					rdy_inst_if_out <= `TRUE;
+					inst_ic_out <= {mem_din, read_buf[2], read_buf[1], read_buf[0]};
+					rdy_inst_ic_out <= `TRUE;
 				end
 				else if (status == `READ_DATA) begin
 					case (len_lsc_in)
@@ -136,7 +136,7 @@ module MemCtrl(
 		if (status != `IDLE && stage <= end_stage - 3) begin
 			case (status)
 				`READ_INST: begin
-					mem_a = inst_addr_if_in + stage;
+					mem_a = inst_addr_ic_in + stage;
 				end
 				`READ_DATA: begin
 					mem_a = addr_lsc_in + stage;

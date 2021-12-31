@@ -43,6 +43,34 @@ module testbench;
 			$dumpvars(0, testbench.top.cpu0.RegFile.busy[i]);
 		end
 
+		for (i = 0; i < 32; i = i + 1) begin
+			$dumpvars(0, testbench.top.cpu0.ICache.value[i]);
+			$dumpvars(0, testbench.top.cpu0.ICache.valid[i]);
+			$dumpvars(0, testbench.top.cpu0.ICache.tag[i]);
+		end
+
+		for (i = 0; i < 16; i = i + 1) begin
+			$dumpvars(0, testbench.top.cpu0.RS.busy[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.qj[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.vj[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.qk[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.vk[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.rob_id[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.op[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.pc[i]);
+			$dumpvars(0, testbench.top.cpu0.RS.A[i]);
+		end
+
+		
+		for (i = 0; i < 16; i = i + 1) begin
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.op[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.qj[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.vj[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.qk[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.vk[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.rob_id[i]);
+			$dumpvars(0, testbench.top.cpu0.LSBuffer.A[i]);
+		end
 	end
 
 endmodule

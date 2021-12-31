@@ -68,6 +68,15 @@ module LSCtrl(
 							default: result_ls_cdb_out <= data_l_mc_in;
 						endcase
 					end
+
+`ifdef DEBUG
+					if (opcode_lsb_in >= `LB && opcode_lsb_in <= `LHU) begin
+						$display("lsc finish ty=load addr=%x res=%d len=%d", addr, data_l_mc_in, len);
+					end
+					else begin
+						$display("lsc finish ty=write addr=%x val=%x len=%d", addr, data_s, len);
+					end
+`endif
 				end
 			end
 			else if (rdy_lsb_in) begin
@@ -122,7 +131,6 @@ module LSCtrl(
 		addr_mc_out = addr;
 		len_mc_out = len;
 		data_s_mc_out = data_s;
-
 		idle_lsb_out = idle_out;
 	end
 endmodule

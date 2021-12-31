@@ -30,7 +30,10 @@ module Dispatcher(
 	output reg rdy_rob_out,
 	output reg [`OP_TYPE_WIDTH - 1 : 0] op_type_rob_out,
 	output reg [`ADDR_WIDTH - 1 : 0] dest_rob_out,
-	// get ready value of rs1 or rs2 from rob
+`ifdef DEBUG
+	output reg [`ADDR_WIDTH - 1 : 0] pc_rob_out,
+`endif
+	// bug: can get ready value of rs1 or rs2 from rob
 	input wire rs1_rdy_rob_in, rs2_rdy_rob_in,
 	input wire [`DATA_WIDTH - 1 : 0] rs1_val_rob_in, rs2_val_rob_in,
 	output reg [`ROB_WIDTH - 1 : 0] rs1_rob_rob_out, rs2_rob_rob_out,
@@ -73,10 +76,13 @@ module Dispatcher(
 			rdy_rob_out = `FALSE;
 			rdy_lsb_out = `FALSE;
 			// rdy_dispatch_dec_out = `FALSE;
-			rdy_dispatch_dec_out = rdy_dec_in && (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
+			// rdy_dispatch_dec_out = rdy_dec_in && (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
+			can_dispatch = rdy_dec_in && (!rob_full_rob_in) && 
+				((op_type_dec_in == `OP_ARITH || op_type_dec_in == `OP_JUMP || op_type_dec_in == `OP_BRANCH) ? !rs_full_rs_in : !lsb_full_lsb_in);
+			rdy_dispatch_dec_out = can_dispatch;
 			// $display("ww1 %d %t", rdy_dispatch_dec_out, $realtime);
 			if (rdy_dec_in) begin
-				can_dispatch = (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
+				// can_dispatch = (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
 
 				//rob, reg, qj, qk, vj, vk
 				if (can_dispatch) begin
@@ -128,6 +134,10 @@ module Dispatcher(
 							vk = rs2_val_rf_in;
 						end
 					end
+
+`ifdef DEBUG
+					pc_rob_out = pc_dec_in;
+`endif	
 
 					//RS
 					if (op_type_dec_in == `OP_ARITH || op_type_dec_in == `OP_JUMP || 

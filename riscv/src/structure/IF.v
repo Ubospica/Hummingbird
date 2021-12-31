@@ -8,10 +8,16 @@ module IF(
 	input wire rdy_in,
 	
 	//from / to MemCtrl
-	input wire rdy_inst_mc_in,
-	input wire [`INST_WIDTH - 1 : 0] inst_mc_in,
-	output reg [`ADDR_WIDTH - 1 : 0] inst_addr_mc_out,
-	output reg rdy_inst_mc_out,
+	// input wire rdy_inst_mc_in,
+	// input wire [`INST_WIDTH - 1 : 0] inst_mc_in,
+	// output reg [`ADDR_WIDTH - 1 : 0] inst_addr_mc_out,
+	// output reg rdy_inst_mc_out,
+
+	//ICache
+	input wire [`INST_WIDTH - 1 : 0] inst_ic_in,
+	input wire rdy_ic_in,
+	output reg [`ADDR_WIDTH - 1 : 0] pc_ic_out,
+	output reg rdy_ic_out,
 
 	//from / to InstQueue
 	input wire iq_full_iq_in,
@@ -34,18 +40,20 @@ module IF(
 		else if (rdy_in && refresh_rob_cdb_in) begin
 			pc <= new_pc_rob_in;
 			rdy_inst_iq_out <= `FALSE;
+			// bug: output new pc_ic_out after reflush
+			pc_ic_out <= new_pc_rob_in;
 		end
 		else if (rdy_in) begin
-			if (rdy_inst_mc_in) begin
+			if (rdy_ic_in) begin
 				rdy_inst_iq_out <= `TRUE;
-				inst_iq_out <= inst_mc_in;
+				inst_iq_out <= inst_ic_in;
 				pc_iq_out <= pc;
-				inst_addr_mc_out <= pc + 4;
+				pc_ic_out <= pc + 4;
 				pc <= pc + 4;
 			end
 			else begin
 				rdy_inst_iq_out <= `FALSE;
-				inst_addr_mc_out <= pc;
+				pc_ic_out <= pc;
 			end
 		end
 		else begin
@@ -54,6 +62,6 @@ module IF(
 	end
 
 	always @(*) begin
-		rdy_inst_mc_out = ~iq_full_iq_in;
+		rdy_ic_out = ~iq_full_iq_in;
 	end
 endmodule

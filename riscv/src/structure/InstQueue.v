@@ -55,7 +55,8 @@ module InstQueue(
 	end
 
 	always @(*) begin
-		iq_full_if_out = head == tail + `IQ_WIDTH'd1;
+		// bug: if realsize = iqsize - 1, may confuse IF
+		iq_full_if_out = $unsigned(tail - head) >= `IQ_SIZE - 2;
 		inst_dec_out = inst_queue[head];
 		pc_dec_out = pc[head];
 		rdy_dec_out = head != tail;

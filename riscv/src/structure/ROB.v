@@ -7,7 +7,7 @@ module ROB(
 	input wire rst_in,
 	input wire rdy_in,
 	
-	
+	//Dispatcher
 	input wire rdy_dp_in,
 	input wire [`OP_TYPE_WIDTH - 1 : 0] op_type_dp_in,
 	input wire [`ADDR_WIDTH - 1 : 0] dest_dp_in,
@@ -17,6 +17,10 @@ module ROB(
 	input wire [`ROB_WIDTH - 1 : 0] rs1_rob_dp_in, rs2_rob_dp_in,
 	output reg rs1_rdy_dp_out, rs2_rdy_dp_out,
 	output reg [`DATA_WIDTH - 1 : 0] rs1_val_dp_out, rs2_val_dp_out,
+	
+`ifdef DEBUG
+	input wire [`ADDR_WIDTH - 1 : 0] pc_dp_in,
+`endif
 
 	//RegFile
 	output reg rdy_commit_rf_out,
@@ -45,11 +49,16 @@ module ROB(
 	reg [`ADDR_WIDTH - 1 : 0] dest [`ROB_SIZE - 1 : 0];
 	reg [`ADDR_WIDTH - 1 : 0] pc [`ROB_SIZE - 1 : 0];
 	reg [`DATA_WIDTH - 1 : 0] value [`ROB_SIZE - 1 : 0];
+`ifdef DEBUG
+	reg [`ADDR_WIDTH - 1 : 0] pc_in [`ROB_SIZE - 1 : 0];
+`endif	
 	reg rdy [`ROB_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] head, tail;
 	reg [`ROB_WIDTH : 0] rob_cnt;
 
 	reg refresh_rob;
+
+	integer i;
 
 	always @(posedge clk_in) begin
 		if (rst_in) begin
@@ -58,6 +67,9 @@ module ROB(
 			rdy_commit_rf_out <= `FALSE;
 			rob_cnt <= 0;
 			refresh_rob <= `FALSE;
+			for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+				rdy[i] = `FALSE;
+			end
 		end
 		else if (rdy_in && refresh_rob) begin
 			head <= 1;
@@ -65,9 +77,15 @@ module ROB(
 			rdy_commit_rf_out <= `FALSE;
 			rob_cnt <= 0;
 			refresh_rob <= `FALSE;
+			for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+				rdy[i] = `FALSE;
+			end
 		end
 		else if (rdy_in) begin
 			if (rdy_dp_in) begin
+`ifdef DEBUG
+				pc_in[tail] <= pc_dp_in;
+`endif	
 				op_type[tail] <= op_type_dp_in;
 				dest[tail] <= dest_dp_in;
 				rdy[tail] <= `FALSE;
@@ -91,10 +109,14 @@ module ROB(
 			rdy_commit_rf_out <= `FALSE;
 			if (rob_cnt != 0 && rdy[head] == `TRUE) begin
 				// write to reg file
-				// $display("commit rob=%d type=%d tm=%t", head, op_type[head], $realtime);
+`ifdef DEBUG
+				$display("commit rob=%d type=%d pc=%x tm=%t", head, op_type[head], pc_in[head], $realtime);
+`endif
 				if ((op_type[head] == `OP_JUMP || op_type[head] == `OP_ARITH ||
 					op_type[head] == `OP_LOAD) && dest[head]) begin
-					// $display("write rd value=%d dest=%d", value[head], dest[head]);
+`ifdef DEBUG
+					$display("write rd value=%d dest=%d", value[head], dest[head]);
+`endif
 					rdy_commit_rf_out <= `TRUE;
 					dest_rf_out <= dest[head];
 					value_rf_out <= value[head];
@@ -104,14 +126,17 @@ module ROB(
 				// jump
 				if (op_type[head] == `OP_JUMP || 
 					(op_type[head] == `OP_BRANCH && value[head] == 1)) begin
-					// $display("jmp pc=%d", pc[head]);
+`ifdef DEBUG
+					$display("jmp pc=%x", pc[head]);
+`endif
 					refresh_rob <= `TRUE;
 					new_pc_if_out <= pc[head];
 				end
 
-				rdy[head] <= `FALSE;
+				// bug: should not clear cz may be used by rs1/rs2_rdy_dp_out
+				// rdy[head] <= `FALSE;
 				head <= (head == `ROB_SIZE - 1) ? 1 : head + 1;
-				rob_cnt <= rob_cnt - 1;
+				rob_cnt <= rdy_dp_in ? rob_cnt : rob_cnt - 1;
 			end
 		end
 	end

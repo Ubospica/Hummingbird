@@ -44,7 +44,7 @@ module RS(
 	reg [`ROB_WIDTH - 1 : 0] qj [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] qk [`RS_SIZE - 1 : 0];
 	reg [`DATA_WIDTH - 1 : 0] vj [`RS_SIZE - 1 : 0];
-	reg [`DATA_WIDTH - 1 - 1 : 0] vk [`RS_SIZE - 1 : 0];
+	reg [`DATA_WIDTH - 1 : 0] vk [`RS_SIZE - 1 : 0];
 	reg [`DATA_WIDTH - 1 : 0] A [`RS_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] rob_id [`RS_SIZE - 1 : 0];
 
@@ -88,11 +88,34 @@ module RS(
 				A[free_rs_id] <= A_dp_in;
 				rob_id[free_rs_id] <= rob_id_dp_in;
 				rs_cnt <= rs_cnt + 1;
+
+				// bug: dispatcher and cdb come at the same cycle
+				if (rdy_a_cdb_in) begin
+					if (qj_dp_in == rob_id_a_cdb_in) begin
+						qj[free_rs_id] <= 0;
+						vj[free_rs_id] <= result_a_cdb_in;
+					end
+					if (qk_dp_in == rob_id_a_cdb_in) begin
+						qk[free_rs_id] <= 0;
+						vk[free_rs_id] <= result_a_cdb_in;
+					end
+				end
+
+				if (rdy_ls_cdb_in) begin
+					if (qj_dp_in == rob_id_ls_cdb_in) begin
+						qj[free_rs_id] <= 0;
+						vj[free_rs_id] <= result_ls_cdb_in;
+					end
+					if (qk_dp_in == rob_id_ls_cdb_in) begin
+						qk[free_rs_id] <= 0;
+						vk[free_rs_id] <= result_ls_cdb_in;
+					end
+				end
 			end
 
 			if (sent_to_alu) begin
 				busy[alu_rs_id] <= `FALSE;
-				rs_cnt <= rs_cnt - 1;
+				rs_cnt <= rdy_dp_in ? rs_cnt : rs_cnt - 1;
 				sent_to_alu <= `FALSE;
 			end
 

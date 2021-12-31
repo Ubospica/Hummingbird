@@ -94,6 +94,16 @@ module ALU(
 				rdy_a_cdb_out = `TRUE;
 
 				idle_rs_out = `TRUE;
+
+`ifdef DEBUG
+				if (opcode_rs_in == `BLT || opcode_rs_in == `BGE) begin
+					$display("alu pc=%x v1=%d v2=%d res=%d newpc=%x", pc_rs_in, $signed(vj_rs_in), $signed(vk_rs_in), result, pc_result);
+				end
+				else begin // if (opcode_rs_in == `BLTU || opcode_rs_in == `BGEU || opcode_rs_in == `BEQ) begin
+					$display("alu pc=%x v1=%d v2=%d res=%d newpc=%x", pc_rs_in, vj_rs_in, vk_rs_in, result, pc_result);
+				end
+`endif
+
 			end
 		end
 	end

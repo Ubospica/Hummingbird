@@ -1,6 +1,8 @@
 `ifndef __STRUCTURE_DEFINE_VH__
 `define __STRUCTURE_DEFINE_VH__
 
+// `define DEBUG
+
 //constants
 `define ZERO_WORD 32'b0
 `define ZERO_BYTE 8'b0
@@ -27,6 +29,7 @@
 `define ROB_SIZE 16
 `define LSB_WIDTH 4
 `define LSB_SIZE 16
+`define IC_SIZE 512
 
 // nonsense
 `define OP_WIDTH 7

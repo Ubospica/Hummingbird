@@ -44,12 +44,16 @@ module LSCtrl(
 			rdy_ls_cdb_out <= `FALSE;
 			rdy_data_mc_out <= `FALSE;
 		end
-		else if (rdy_in && refresh_rob_cdb_in) begin
+		else if (!rdy_in) begin
+//			rdy_ls_cdb_out <= `FALSE;
+//			rdy_data_mc_out <= `FALSE;
+		end
+		else if (refresh_rob_cdb_in) begin
 			idle_out <= `TRUE;
 			rdy_ls_cdb_out <= `FALSE;
 			rdy_data_mc_out <= `FALSE;
 		end
-		else if (rdy_in) begin
+		else begin
 			rdy_ls_cdb_out <= `FALSE;
 			rdy_data_mc_out <= `FALSE;
 
@@ -126,7 +130,7 @@ module LSCtrl(
 	end
 
 	always @(*) begin
-		rdy_data_mc_out = ~idle_out;
+//		rdy_data_mc_out = ~idle_out;
 		wr_mc_out = wr;
 		addr_mc_out = addr;
 		len_mc_out = len;

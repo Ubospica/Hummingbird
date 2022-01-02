@@ -1,0 +1,30 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  --include "../../../../../../riscv/src/structure" --include "../../../../../../riscv/ctrl" --include "../../../../../../riscv/sys" \
+"../../../../../../riscv/src/structure/ALU.v" \
+"../../../../../../riscv/src/structure/Decoder.v" \
+"../../../../../../riscv/src/structure/Dispatcher.v" \
+"../../../../../../riscv/src/structure/ICache.v" \
+"../../../../../../riscv/src/structure/IF.v" \
+"../../../../../../riscv/src/structure/InstQueue.v" \
+"../../../../../../riscv/src/structure/LSBuffer.v" \
+"../../../../../../riscv/src/structure/LSCtrl.v" \
+"../../../../../../riscv/src/structure/MemCtrl.v" \
+"../../../../../../riscv/src/structure/ROB.v" \
+"../../../../../../riscv/src/structure/RS.v" \
+"../../../../../../riscv/src/structure/RegFile.v" \
+"../../../../../../riscv/src/common/block_ram/block_ram.v" \
+"../../../../../../riscv/src/cpu.v" \
+"../../../../../../riscv/src/common/fifo/fifo.v" \
+"../../../../../../riscv/src/hci.v" \
+"../../../../../../riscv/src/ram.v" \
+"../../../../../../riscv/src/common/uart/uart.v" \
+"../../../../../../riscv/src/common/uart/uart_baud_clk.v" \
+"../../../../../../riscv/src/common/uart/uart_rx.v" \
+"../../../../../../riscv/src/common/uart/uart_tx.v" \
+"../../../../../../riscv/src/riscv_top.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

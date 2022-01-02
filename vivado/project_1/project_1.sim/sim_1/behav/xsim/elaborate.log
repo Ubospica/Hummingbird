@@ -1,0 +1,34 @@
+Vivado Simulator 2018.2
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: /opt/Xilinx/Vivado/2018.2/bin/unwrapped/lnx64.o/xelab -wto 522eb6daeda4488b8ef3e9c3fd40780c --incr --debug typical --relax --mt 8 -L xil_defaultlib -L unisims_ver -L unimacro_ver -L secureip --snapshot riscv_top_behav xil_defaultlib.riscv_top xil_defaultlib.glbl -log elaborate.log 
+Using 8 slave threads.
+Starting static elaboration
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module xil_defaultlib.single_port_ram_sync(ADDR_WIDTH=...
+Compiling module xil_defaultlib.ram
+Compiling module xil_defaultlib.MemCtrl
+Compiling module xil_defaultlib.ICache
+Compiling module xil_defaultlib.IF
+Compiling module xil_defaultlib.InstQueue
+Compiling module xil_defaultlib.Decoder
+Compiling module xil_defaultlib.Dispatcher
+Compiling module xil_defaultlib.RegFile
+Compiling module xil_defaultlib.RS
+Compiling module xil_defaultlib.ALU
+Compiling module xil_defaultlib.ROB
+Compiling module xil_defaultlib.LSCtrl
+Compiling module xil_defaultlib.LSBuffer
+Compiling module xil_defaultlib.cpu
+Compiling module xil_defaultlib.fifo(ADDR_BITS=10)
+Compiling module xil_defaultlib.uart_baud_clk(SYS_CLK_FREQ=10000...
+Compiling module xil_defaultlib.uart_rx_default
+Compiling module xil_defaultlib.uart_tx_default
+Compiling module xil_defaultlib.fifo
+Compiling module xil_defaultlib.uart(SYS_CLK_FREQ=100000000,BAUD...
+Compiling module xil_defaultlib.hci
+Compiling module xil_defaultlib.riscv_top
+Compiling module xil_defaultlib.glbl
+Built simulation snapshot riscv_top_behav

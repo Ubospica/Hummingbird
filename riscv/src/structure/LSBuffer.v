@@ -38,9 +38,9 @@ module LSBuffer(
 );
 
 	reg [`OP_WIDTH - 1 : 0] op [`LSB_SIZE - 1 : 0];
-	reg [`ROB_WIDTH - 1 : 0] qj [`LSB_SIZE - 1 : 0], qk [`LSB_SIZE - 1 : 0];
-	reg [`INST_WIDTH - 1 : 0] vj [`LSB_SIZE - 1 : 0], vk [`LSB_SIZE - 1 : 0];
-	reg [`INST_WIDTH - 1 : 0] A [`LSB_SIZE - 1 : 0];
+    reg [`ROB_WIDTH - 1 : 0] qj [`LSB_SIZE - 1 : 0], qk [`LSB_SIZE - 1 : 0];
+    reg [`DATA_WIDTH - 1 : 0] vj [`LSB_SIZE - 1 : 0], vk [`LSB_SIZE - 1 : 0];
+	reg [`DATA_WIDTH - 1 : 0] A [`LSB_SIZE - 1 : 0];
 	reg [`ROB_WIDTH - 1 : 0] rob_id [`LSB_SIZE - 1 : 0];
 	
 	reg [`LSB_WIDTH - 1 : 0] head, tail;
@@ -57,13 +57,16 @@ module LSBuffer(
 			tail <= 0;
 			rdy_lsc_out <= `FALSE;
 		end
-		else if (rdy_in && refresh_rob_cdb_in) begin
+		else if (!rdy_in) begin
+//			rdy_lsc_out <= `FALSE;
+		end
+		else if (refresh_rob_cdb_in) begin
 			no_execute <= `FALSE;
 			head <= 0;
 			tail <= 0;
 			rdy_lsc_out <= `FALSE;
 		end
-		else if (rdy_in) begin
+		else begin
 
 			//send to LSCtrl
 			no_execute <= `FALSE;

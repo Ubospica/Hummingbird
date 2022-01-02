@@ -30,9 +30,11 @@ module Dispatcher(
 	output reg rdy_rob_out,
 	output reg [`OP_TYPE_WIDTH - 1 : 0] op_type_rob_out,
 	output reg [`ADDR_WIDTH - 1 : 0] dest_rob_out,
+	
 `ifdef DEBUG
 	output reg [`ADDR_WIDTH - 1 : 0] pc_rob_out,
 `endif
+
 	// bug: can get ready value of rs1 or rs2 from rob
 	input wire rs1_rdy_rob_in, rs2_rdy_rob_in,
 	input wire [`DATA_WIDTH - 1 : 0] rs1_val_rob_in, rs2_val_rob_in,
@@ -60,21 +62,54 @@ module Dispatcher(
 
 	reg can_dispatch;
 	reg [`ROB_WIDTH - 1 : 0] qj, qk;
-	reg [31 : 0] vj, vk;
+	reg [`DATA_WIDTH - 1 : 0] vj, vk;
 
 	always @(*) begin
-		if (rst_in) begin
+	
+        // eliminating latch
+//        can_dispatch = `FALSE;
+//        qj = 0;
+//        qk = 0;
+//        vj = 0;
+//        vk = 0;
+        rs1_rf_out = 0;
+        rs2_rf_out = 0;
+        rd_rf_out = 0;
+        rd_rob_rf_out = 0;
+        op_type_rob_out = 0;
+        dest_rob_out = 0;
+        rs1_rob_rob_out = 0;
+        rs2_rob_rob_out = 0;
+        pc_rs_out = 0;
+        opcode_rs_out = 0;
+        qj_rs_out = 0;
+        qk_rs_out = 0;
+        vj_rs_out = 0;
+        vk_rs_out = 0;
+        A_rs_out = 0;
+        rob_id_rs_out = 0;
+        opcode_lsb_out = 0;
+        qj_lsb_out = 0;
+        qk_lsb_out = 0;
+        vj_lsb_out = 0;
+        vk_lsb_out = 0;
+        A_lsb_out = 0;
+        rob_id_lsb_out = 0;
+        
+		if (rst_in || !rdy_in) begin
 			rdy_rf_out = `FALSE;
 			rdy_rob_out = `FALSE;
 			rdy_rs_out = `FALSE;
 			rdy_lsb_out = `FALSE;
 			rdy_dispatch_dec_out = `FALSE;
 		end
-		else if (rdy_in) begin
+		else begin
 			rdy_rs_out = `FALSE;
 			rdy_rf_out = `FALSE;
 			rdy_rob_out = `FALSE;
 			rdy_lsb_out = `FALSE;
+            
+			
 			// rdy_dispatch_dec_out = `FALSE;
 			// rdy_dispatch_dec_out = rdy_dec_in && (!rob_full_rob_in) && (op_type_dec_in == `OP_ARITH ? !rs_full_rs_in : !lsb_full_lsb_in);
 			can_dispatch = rdy_dec_in && (!rob_full_rob_in) && 

@@ -45,33 +45,39 @@ module MemCtrl(
 `define S5 3'd5
 `define S6 3'd6
 
-	reg [2 : 0] status;
+	reg [1 : 0] status;
 	// only meaningful when status != `IDLE
 	reg [2 : 0] stage, end_stage;
 	reg [7 : 0] read_buf[3 : 0];
+`ifdef DEBUG
 	wire [31 : 0] tmp1 = {read_buf[3], read_buf[2], read_buf[1], read_buf[0]};
+`endif
 	integer i;
 
 	always @(posedge clk_in) begin
 		if (rst_in) begin
 			status <= `IDLE;
 			stage <= `S0;
-			for (i = 0; i <= 3; ++i) begin
+			for (i = 0; i <= 3; i = i + 1) begin
 				read_buf[i] <= 0;
 			end
 			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 		end
-		else if (rdy_in && refresh_rob_cdb_in) begin
+		else if (!rdy_in) begin
+//            rdy_inst_ic_out <= `FALSE;
+//            rdy_data_lsc_out <= `FALSE;
+		end
+		else if (refresh_rob_cdb_in) begin
 			status <= `IDLE;
 			stage <= `S0;
-	 		for (i = 0; i <= 3; ++i) begin
+	 		for (i = 0; i <= 3; i = i + 1) begin
 	 			read_buf[i] <= 0;
 	 		end
 			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 		end
-		else if (rdy_in) begin
+		else begin
 			rdy_inst_ic_out <= `FALSE;
 			rdy_data_lsc_out <= `FALSE;
 

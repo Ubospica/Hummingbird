@@ -44,7 +44,10 @@ module Decoder(
 		if (rst_in) begin
 			rdy_dp_out = `FALSE;
 		end
-		else if (rdy_in) begin
+		else if (!rdy_in) begin
+			// rdy_dp_out = `FALSE;
+		end
+		else begin
 			rdy_dp_out = rdy_iq_in;
 			if (rdy_iq_in) begin
 				//get imm, rs1, rs2, rd

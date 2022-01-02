@@ -37,10 +37,16 @@ module ALU(
 	always @(*) begin
 		idle_rs_out = `TRUE;
 		rdy_a_cdb_out = `FALSE;
-		if (rst_in) begin
-			
+		
+		// eliminating latch
+		result_a_cdb_out = 0;
+		new_pc_a_cdb_out = 0;
+		rob_id_a_cdb_out = 0;
+		
+		if (rst_in || !rdy_in) begin
+		
 		end
-		else if (rdy_in) begin
+		else begin
 			if (rdy_rs_in == `TRUE) begin
 				idle_rs_out = `FALSE;
 				rdy_a_cdb_out = `FALSE;

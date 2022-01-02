@@ -45,10 +45,12 @@ module ICache(
 			for (i = 0; i < `IC_SIZE; i = i + 1) begin
 				valid[i] <= 0;
 			end
-			rdy_if_out <= `FALSE;
 			rdy_inst_mc_out <= `FALSE;
 		end
-		else if (rdy_in) begin
+		else if (!rdy_in) begin
+//			rdy_inst_mc_out <= `FALSE;
+		end
+		else begin
 			if (is_busy && rdy_inst_mc_in) begin
 				rdy_inst_mc_out <= `FALSE;
 				is_busy <= `FALSE;
@@ -68,7 +70,7 @@ module ICache(
 
 	always @(*) begin
 		pc_idx = pc_if_in[`IDX_RANGE];
-		hit = rdy_if_in && pc_if_in[`TAG_RANGE] == tag[pc_idx] && valid[pc_idx];
+		hit = !rst_in && rdy_in && rdy_if_in && pc_if_in[`TAG_RANGE] == tag[pc_idx] && valid[pc_idx];
 		rdy_if_out = hit;
 		inst_if_out = value[pc_idx];
 	end

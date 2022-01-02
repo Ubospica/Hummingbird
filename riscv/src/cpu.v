@@ -31,14 +31,19 @@ module cpu(
 // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
 // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
 	integer i;
+//	assign dbgreg_dout = 0;
 	always @(posedge clk_in) begin
 		if (rst_in) begin
-			i <= 0;
+//            i <= 0;
+`ifdef DEBUG
+            i <= 0;
+`endif
 		end
 		else if (!rdy_in) begin
 
 		end
 		else begin
+//            i <= i + 1;
 `ifdef DEBUG
 			i <= i + 1;
 			if (i % 100000 == 0)
@@ -46,6 +51,8 @@ module cpu(
 `endif
 		end
 	end
+	
+	wire rdy_in_new = rdy_in && !io_buffer_full;
 
 
 	wire refresh_rob_cdb;
@@ -160,7 +167,7 @@ module cpu(
 	MemCtrl MemCtrl(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 
 		.mem_din(mem_din),
 		.mem_dout(mem_dout),
@@ -186,7 +193,7 @@ module cpu(
 	ICache ICache(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		.pc_if_in(pc_if_ic),
 		.rdy_if_in(rdy_if_ic),
@@ -202,7 +209,7 @@ module cpu(
 	IF IF(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		.inst_ic_in(inst_ic_if),
 		.rdy_ic_in(rdy_ic_if),
@@ -222,7 +229,7 @@ module cpu(
 	InstQueue InstQueue(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//from / to IF
 		.inst_if_in(inst_if_iq),
@@ -242,7 +249,7 @@ module cpu(
 	Decoder Decoder(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//InstQueue
 		.inst_iq_in(inst_iq_dec),
@@ -263,7 +270,7 @@ module cpu(
 	Dispatcher Dispatcher(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//Decoder
 		.rdy_dec_in(rdy_dec_dp),
@@ -320,7 +327,7 @@ module cpu(
 	RegFile RegFile(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//Dispatcher
 		.rdy_dp_in(rdy_dp_rf),
@@ -342,7 +349,7 @@ module cpu(
 	RS RS(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//Dispatcher
 		.rdy_dp_in(rdy_dp_rs),
@@ -376,7 +383,7 @@ module cpu(
 	ALU ALU(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//RS
 		.rdy_rs_in(rdy_rs_alu),
@@ -396,7 +403,7 @@ module cpu(
 	ROB ROB(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		
 		.rdy_dp_in(rdy_dp_rob),
@@ -437,7 +444,7 @@ module cpu(
 	LSCtrl LSCtrl(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//LSBuffer
 		.rdy_lsb_in(rdy_lsb_lsc),
@@ -466,7 +473,7 @@ module cpu(
 	LSBuffer LSBuffer(
 		.clk_in(clk_in),
 		.rst_in(rst_in),
-		.rdy_in(rdy_in),
+		.rdy_in(rdy_in_new),
 		
 		//Dispatcher
 		.rdy_dp_in(rdy_dp_lsb),

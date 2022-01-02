@@ -71,7 +71,10 @@ module ROB(
 				rdy[i] = `FALSE;
 			end
 		end
-		else if (rdy_in && refresh_rob) begin
+		else if (!rdy_in) begin
+//            rdy_commit_rf_out <= `FALSE;
+		end
+		else if (refresh_rob) begin
 			head <= 1;
 			tail <= 1;
 			rdy_commit_rf_out <= `FALSE;
@@ -81,7 +84,7 @@ module ROB(
 				rdy[i] = `FALSE;
 			end
 		end
-		else if (rdy_in) begin
+		else begin
 			if (rdy_dp_in) begin
 `ifdef DEBUG
 				pc_in[tail] <= pc_dp_in;
@@ -92,19 +95,19 @@ module ROB(
 				tail <= (tail == `ROB_SIZE - 1) ? 1 : tail + 1;
 				rob_cnt <= rob_cnt + 1;
 			end
-
+			
 			if (rdy_a_cdb_in) begin
-				value[rob_id_a_cdb_in] <= result_a_cdb_in;
-				pc[rob_id_a_cdb_in] <= new_pc_a_cdb_in;
-				rdy[rob_id_a_cdb_in] <= `TRUE;
-			end
-
+                value[rob_id_a_cdb_in] <= result_a_cdb_in;
+                pc[rob_id_a_cdb_in] <= new_pc_a_cdb_in;
+                rdy[rob_id_a_cdb_in] <= `TRUE;
+            end
+			
 			if (rdy_ls_cdb_in) begin
-				if(op_type[rob_id_ls_cdb_in] == `OP_LOAD)
-					value[rob_id_ls_cdb_in] <= result_ls_cdb_in;
-				rdy[rob_id_ls_cdb_in] <= `TRUE;
-			end
-
+                if(op_type[rob_id_ls_cdb_in] == `OP_LOAD)
+                    value[rob_id_ls_cdb_in] <= result_ls_cdb_in;
+		      	rdy[rob_id_ls_cdb_in] <= `TRUE;
+            end
+            
 			//commit
 			rdy_commit_rf_out <= `FALSE;
 			if (rob_cnt != 0 && rdy[head] == `TRUE) begin
@@ -140,6 +143,7 @@ module ROB(
 			end
 		end
 	end
+
 
 	always @(*) begin
 		rob_full_dp_out = rob_cnt >= `ROB_SIZE - 3;

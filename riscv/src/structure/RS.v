@@ -169,6 +169,8 @@ module RS(
 
 	always @(*) begin
 		rs_full_dp_out = rs_cnt >= `RS_SIZE - 1; // todo: is sign extended?
+		// bug: free_rs_id latch
+		free_rs_id = 0;
 		for (i = 0; i < `RS_SIZE; i = i + 1) begin
 			if (~busy[i]) begin
 				free_rs_id = i;

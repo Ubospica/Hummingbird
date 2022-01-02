@@ -18,14 +18,14 @@ Simulation test passed:
 - lvalue2
 - statement_test
 - uartboom (but occurs error when modifing rdy_in for implementation purpose)
-- every test that is not exceedingly complex
+- every test except testsleep and except that is not exceedingly complex
 
 Implement Error:
-- Heart
-- tak (ok not O2)
-- statement_test(ok in 80hz)
-- uartboom (ok)
 - looper (ok not O2; 44s without branch predictor)
+- tak (ok not O2)
+- statement_test (ok not O2)
+- uartboom (ok)
+- Heart
 
 
 ### Reading Materials & Hints
